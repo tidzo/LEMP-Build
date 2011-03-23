@@ -10,11 +10,29 @@
 #provide here you accept this terms.
 
 ### Program Versions:
-NGINX_VER="0.8.54"
+NGINX_VER="0.9.6"
 PHP_VER="5.3.6"
 APC_VER="3.1.7"
 SUHOSIN_VER="0.9.32.1"
 LOG_FILE="install.log"
+
+###Prefix for all apps to install
+PREFIX="/apps"
+PHP_PREFIX="$PREFIX/php"
+PHP_CONF_DIR="$PHP_PREFIX/conf"
+PHP_CONFD_DIR="$PHP_PREFIX/conf.d"
+PHP_LOG_DIR="$PHP_PREFIX/logs"
+PHPIZE="$PHP_PREFIX/bin/phpize"
+
+
+NGINX_PREFIX="$PREFIX/nginx"
+NGINX_LOG_DIR="$NGINX_PREFIX/logs"
+NGINX_DOCROOT="$PREFIX/docroot"
+
+###OTHER CONF
+USERNAME="www-data"
+GROUPNAME="www-data"
+
 
 # Check if you are root
 if [ $(id -u) != "0" ]; then
@@ -106,9 +124,9 @@ echo "Installing PHP (Please be patient, this will take a while...)" >&3
 cd php-$PHP_VER
 ./buildconf --force
 ./configure \
-  --prefix=/opt/php5 \
-  --with-config-file-path=/etc/php5 \
-  --with-config-file-scan-dir=/etc/php5/conf.d \
+  --prefix=$PHP_PREFIX \
+  --with-config-file-path=$PHP_CONF_DIR \
+  --with-config-file-scan-dir=$PHP_CONFD_DIR \
   --with-curl \
   --with-pear \
   --with-gd \
@@ -128,8 +146,8 @@ cd php-$PHP_VER
   --with-xsl \
   --with-bz2 \
   --with-gettext \
-  --with-fpm-user=www-data \
-  --with-fpm-group=www-data \
+  --with-fpm-user=$USERNAME \
+  --with-fpm-group=$GROUPNAME \
   --disable-debug \
   --enable-fpm \
   --enable-exif \
@@ -152,24 +170,24 @@ make install
 
 echo 'Configuring PHP...' >&3
 echo '
-if [ -d "/opt/php5/bin" ] && [ -d "/opt/php5/sbin" ]; then
-    PATH="$PATH:/opt/php5/bin:/opt/php5/sbin"
+if [ -d "$PHP_PREFIX/bin" ] && [ -d "$PHP_PREFIX/sbin" ]; then
+    PATH="$PATH:$PHP_PREFIX/bin:$PHP_PREFIX/sbin"
 fi' >> /etc/bash.bashrc
 
-export PATH="$PATH:/opt/php5/bin:/opt/php5/sbin"
+export PATH="$PATH:$PHP_PREFIX/bin:$PHP_PREFIX/sbin"
 
-mkdir -p /etc/php5/conf.d /var/log/php5-fpm
+mkdir -p $PHP_CONF_DIR $PHP_CONFD_DIR $PHP_LOG_DIR/php5-fpm
 
-cp -f php.ini-production /etc/php5/php.ini
-cp $CUR_DIR/conf_files/php-fpm.conf /etc/php5/php-fpm.conf
+cp -f php.ini-production $PHP_CONF_DIR/php.ini
+cp $CUR_DIR/conf_files/php-fpm.conf $PHP_CONF_DIR/php-fpm.conf
 cp $CUR_DIR/init_files/php5-fpm /etc/init.d/php5-fpm
 chmod +x /etc/init.d/php5-fpm
 update-rc.d -f php5-fpm defaults
 
-chown -R www-data:www-data /var/log/php5-fpm
+chown -R $USERNAME:$GROUPNAME /var/log/php5-fpm
 
 echo 'Creating logrotate script...' >&3
-echo '/var/log/php5-fpm/*.log {
+echo '$PHP_LOG_DIR/php5-fpm/*.log {
   weekly
   missingok
   rotate 52
@@ -186,8 +204,8 @@ echo '/var/log/php5-fpm/*.log {
 ### Installing APC
 echo 'Installing APC...' >&3
 cd ../APC-$APC_VER
-/opt/php5/bin/phpize -clean
-./configure --enable-apc --with-php-config=/opt/php5/bin/php-config --with-libdir=/opt/php5/lib/php
+$PHPIZE -clean
+./configure --enable-apc --with-php-config=$PHP_PREFIX/bin/php-config --with-libdir=$PHP_PREFIX/lib/php
 make
 make install
 
@@ -204,25 +222,25 @@ apc.mmap_file_mask=/tmp/apc.XXXXXX
 apc.enable_cli=1
 ; Optional, for "[apc-warning] Potential cache slam averted for key... errors"
 ; apc.slam_defense = Off
-' > /etc/php5/conf.d/apc.ini
+' > $PHP_CONFD_DIR/apc.ini
 
 ### Installing Suhosin
 echo 'Installing Suhosin...' >&3
 cd ../suhosin-$SUHOSIN_VER
 
-/opt/php5/bin/phpize -clean
-./configure --with-php-config=/opt/php5/bin/php-config --with-libdir=/opt/php5/lib/php
+$PHPIZE -clean
+./configure --with-php-config=$PHP_PREFIX/bin/php-config --with-libdir=$PHP_PREFIXlib/php
 make
 make install
 
 echo '; Suhosin Extension
-extension = suhosin.so' > /etc/php5/conf.d/suhosin.ini
+extension = suhosin.so' > $PHP_CONFD_DIR/suhosin.ini
 
 ### Check PHP installation
-if [ -e "/opt/php5/bin/php" ] ; then
+if [ -e "$PHP_PREFIX/bin/php" ] ; then
   echo "=========================================================================" >&3
   echo 'PHP was successfully installed.' >&3
-  /opt/php5/bin/php -v >&3
+  $PHP_PREFIX/bin/php -v >&3
   echo "=========================================================================" >&3
 else
   echo 'Error: PHP installation was unsuccessful.' >&3
@@ -236,10 +254,10 @@ fi
 echo 'Installing NginX...' >&3
 cd ../nginx-$NGINX_VER/
 
-./configure --prefix=/opt/nginx \
-    --conf-path=/etc/nginx/nginx.conf \
-    --http-log-path=/var/log/nginx/access.log \
-    --error-log-path=/var/log/nginx/error.log \
+./configure --prefix=$NGINX_PREFIX \
+    --conf-path=$NGINX_PREFIX/nginx.conf \
+    --http-log-path=$NGINX_LOG_DIR/access.log \
+    --error-log-path=$NGINX_LOG_DIR/error.log \
     --pid-path=/var/run/nginx.pid \
     --lock-path=/var/lock/nginx.lock \
     --with-http_stub_status_module \
@@ -255,16 +273,16 @@ echo 'Configuring NginX...' >&3
 cp $CUR_DIR/init_files/nginx /etc/init.d/nginx
 chmod +x /etc/init.d/nginx
 update-rc.d -f nginx defaults
-cp $CUR_DIR/conf_files/nginx.conf /etc/nginx/nginx.conf
-mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
-cp $CUR_DIR/conf_files/example.com /etc/nginx/sites-available/example.com
-ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/example.com
+cp $CUR_DIR/conf_files/nginx.conf $NGINX_PREFIX/nginx.conf
+mkdir -p $NGINX_PREFIX/sites-available $NGINX_PREFIX/sites-enabled
+cp $CUR_DIR/conf_files/example.com $NGINX_PREFIX/sites-available/example.com
+ln -s $NGINX_PREFIX/sites-available/example.com $NGINX_PREFIX/sites-enabled/example.com
 
-cp $CUR_DIR/web_files/* /var/www
+cp $CUR_DIR/web_files/* $NGINX_DOCROOT
 
 echo 'Creating logrotate script...' >&3
-chown -R www-data:www-data /var/log/nginx
-echo '/var/log/nginx/*.log {
+chown -R $USERNAME:GROUPNAME $NGINX_LOG_DIR
+echo '$NGINX_LOG_DIR/*.log {
   weekly
   missingok
   rotate 52
@@ -279,10 +297,10 @@ echo '/var/log/nginx/*.log {
 }' > /etc/logrotate.d/nginx
 
 ### Check NginX installation
-if [ -e "/opt/nginx/sbin/nginx" ] ; then
+if [ -e "$NGINX_PREFIX/sbin/nginx" ] ; then
   echo "=========================================================================" >&3
   echo 'NginX was successfully installed.' >&3
-  /opt/nginx/sbin/nginx -v >&3
+  $NGINX_PREFIX/sbin/nginx -v >&3
   echo "=========================================================================" >&3
 else
   echo 'Error: NginX installation was unsuccessful.' >&3
