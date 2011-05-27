@@ -10,9 +10,9 @@
 #provide here you accept this terms.
 
 ### Program Versions:
-NGINX_VER="0.9.6"
+NGINX_VER="1.0.3"
 PHP_VER="5.3.6"
-APC_VER="3.1.7"
+APC_VER="3.1.9"
 SUHOSIN_VER="0.9.32.1"
 LOG_FILE="install.log"
 
@@ -121,6 +121,14 @@ fi
 
 ### Compile PHP
 echo "Installing PHP (Please be patient, this will take a while...)" >&3
+
+### Temporary fix ###
+[ -f /usr/lib/x86_64-linux-gnu/libjpeg.so ] && ln -s /usr/lib/x86_64-linux-gnu/libjpeg.so /usr/lib/libjpeg.so
+[ -f /usr/lib/x86_64-linux-gnu/libpng.so ] && ln -s /usr/lib/x86_64-linux-gnu/libpng.so /usr/lib/libpng.so
+[ -f /usr/lib/i386-linux-gnu/libjpeg.so ] && ln -s /usr/lib/i386-linux-gnu/libjpeg.so /usr/lib/libjpeg.so
+[ -f /usr/lib/i386-linux-gnu/libpng.so ] && ln -s /usr/lib/i386-linux-gnu/libpng.so /usr/lib/libpng.so
+#####################
+
 cd php-$PHP_VER
 ./buildconf --force
 ./configure \
