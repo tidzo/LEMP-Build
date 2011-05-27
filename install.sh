@@ -72,6 +72,10 @@ esac
 
 CUR_DIR=$(pwd)
 
+#make some directories we'll need later
+mkdir -p "$PHP_PREFIX/logs"
+mkdir -p "$NGINX_PREFIX/logs"
+
 ### Update the system
 echo "Updating apt-get..." >&3
 apt-get -y update
