@@ -94,7 +94,7 @@ apt-get -y install mysql-server mysql-client >&3
 
 ### Download the packages
 echo "Downloading and extracting nginx-$NGINX_VER..." >&3
-mkdir /var/www
+mkdir /apps/sites -p
 mkdir $CUR_DIR/lemp_sources
 cd $CUR_DIR/lemp_sources
 wget http://nginx.org/download/nginx-$NGINX_VER.tar.gz
@@ -196,7 +196,7 @@ cp $CUR_DIR/init_files/php5-fpm /etc/init.d/php5-fpm
 chmod +x /etc/init.d/php5-fpm
 update-rc.d -f php5-fpm defaults
 
-chown -R $USERNAME:$GROUPNAME /var/log/php5-fpm
+chown -R $USERNAME:$GROUPNAME /apps/logs/php
 
 echo 'Creating logrotate script...' >&3
 echo '$PHP_LOG_DIR/php5-fpm/*.log {

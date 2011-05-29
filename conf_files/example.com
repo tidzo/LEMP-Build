@@ -2,10 +2,10 @@ server {
 
   server_name _ "";
 
-  access_log  /var/log/nginx/$host.access.log;
-  error_log   /var/log/nginx/error.log;
+  access_log  /apps/logs/nginx/$host.access.log;
+  error_log   /apps/logs/nginx/error.log;
 
-  root    /var/www;
+  root    /apps/sites/example.com
   index   index.php index.html;
 
   ## Block bad bots
@@ -40,7 +40,7 @@ server {
   }  
 
   location ~ \.php$ {
-    include /etc/nginx/fastcgi.conf;
+    include /apps/nginx/fastcgi.conf;
     fastcgi_pass unix:/var/run/php5-fpm.sock;
   }
 
